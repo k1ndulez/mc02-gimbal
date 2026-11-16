@@ -1,0 +1,220 @@
+{
+  "schema": "mc02-x42-arm-wiring/1.0",
+  "generated": "2026-11-15",
+  "title": "MC02 + 3×X42 + 24V 分电板 引脚注册表",
+  "sources": [
+    "达妙科技 DM-MC-Board02 电机开发板使用说明书 V1.1 (2025.07.23)",
+    "ZDT_X42S 第二代闭环步进电机用户手册 V1.0.5 (2026.05.27)",
+    "DM-MC02 附录一 管脚配置图（PWM 排口 / 24Pin 扩展口 / LCD 口）"
+  ],
+  "topology": {
+    "controller": "DM-MC02 (STM32H723VGT6)",
+    "actuators": "3× ZDT X42S 闭环步进（底座旋转 base / 关节1 joint1 / 关节2 joint2）",
+    "control_mode_primary": "脉冲+方向 (PUL/DIR/ENA)",
+    "control_mode_backup": "CAN（MC02 CAN3 汇流，X42 通讯口复用 CAN）",
+    "supply": "24V 开关电源 10A，经 24V 分电板 1 入 4 出"
+  },
+  "x42_common": {
+    "wiring_mode": "共阳 (COMMON ANODE)",
+    "com_level": "3V3",
+    "com_source": "MC02 24Pin 扩展口 #8 VCC_3V3",
+    "signal_behavior": "MC02 GPIO 输出低电平 = 光耦导通 = 该信号有效",
+    "forbidden_com_levels": ["5V", "24V"],
+    "hard_rule": "三个 X42 的 COM 只能并接 3.3V，禁止接 5V 或 24V；否则 5V/24V 会经光耦回流灌进 H723 的 Stp/Dir 引脚，直接损坏 MCU。",
+    "en_handling": "En 默认 Hold（一直使能）；三轴 En 共接 COM/3.3V，不做硬线使能。需要急停时用 X42 通讯口立即停止命令，或改接 GPIO（占用一个 DIR 资源）。",
+    "power_input_rule": "V+/Gnd 必须走 2P 电源端子（或 XH2.54 / 直接焊 20AWG），禁止杜邦；杜邦只允许走 Com/En/Stp/Dir 这类 mA 级信号。",
+    "x42_terminal_labels": ["V+", "Gnd", "Com", "En", "Stp", "Dir", "R/A/H", "T/B/L"]
+  },
+  "distribution_board": {
+    "name": "PDB-24V-1x4（分电板）",
+    "main_input": { "connector": "KF128/5.08mm 2P 螺钉端子 或 XT60", "voltage": "24V", "current_a": 10, "wire_awg": 16 },
+    "main_fuse_a": 10,
+    "main_fuse_type": "汽车插片保险丝 10A（慢熔）",
+    "reverse_protection": "P-MOSFET 理想二极管（SS54 肖特基可替，压降约 0.45V@5A）",
+    "switch": "主开关 16A 船型开关（可选，建议装）",
+    "branches": [
+      {
+        "id": "OUT1",
+        "load": "MC02 主控（VCC_IN/XT30）",
+        "voltage": "24V",
+        "fuse_a": 1.5,
+        "fuse_type": "汽车插片 1.5A（或 2A）",
+        "wire_awg": 22,
+        "connector": "XT30(F) 或 2P 5.08 端子 → MC02 XT30",
+        "note": "MC02 自带防反接+缓启动，本路保险只防后级短路"
+      },
+      {
+        "id": "OUT2",
+        "load": "X42 底座旋转 base",
+        "voltage": "24V",
+        "fuse_a": 3,
+        "fuse_type": "汽车插片 3A（慢熔）",
+        "wire_awg": 20,
+        "connector": "2P 5.08 螺钉端子 → X42 V+/Gnd",
+        "note": "X42 手册要求单模块 3A 以上供电能力"
+      },
+      {
+        "id": "OUT3",
+        "load": "X42 关节1 joint1",
+        "voltage": "24V",
+        "fuse_a": 3,
+        "fuse_type": "汽车插片 3A（慢熔）",
+        "wire_awg": 20,
+        "connector": "2P 5.08 螺钉端子 → X42 V+/Gnd",
+        "note": ""
+      },
+      {
+        "id": "OUT4",
+        "load": "X42 关节2 joint2",
+        "voltage": "24V",
+        "fuse_a": 3,
+        "fuse_type": "汽车插片 3A（慢熔）",
+        "wire_awg": 20,
+        "connector": "2P 5.08 螺钉端子 → X42 V+/Gnd",
+        "note": ""
+      },
+      {
+        "id": "OUT5",
+        "load": "24V 备用（视觉模块 24V→5V 独立降压 / 夹爪）",
+        "voltage": "24V",
+        "fuse_a": 2,
+        "fuse_type": "汽车插片 2A",
+        "wire_awg": 22,
+        "connector": "2P 5.08 螺钉端子",
+        "note": "本板不画降压模块，只留 24V 口"
+      }
+    ],
+    "fuse_coordination": "主保险 10A = 电源 10A 的 100%；分支保险之和 12.5A > 10A 属正常设计：分支保险保护单根线束，主保险保护电源与总母线。若三轴同时满载（>10A），主保险先断，属预期保护行为。",
+    "leds": ["24V 主输入 LED（串 2kΩ）", "每路输出 LED（各串 2kΩ）"],
+    "test_points": ["TP24（输入端）", "TPGND（GND 参考）", "每路输出螺钉端子露铜点"]
+  },
+  "mc02_input": {
+    "connector": "XT30 (2+2)PW-M 或 DC 5521",
+    "voltage_range": "12~24V（本机 24V）",
+    "main_current_a": 0.3,
+    "protections": ["防反接", "缓启动", "过压保护"],
+    "notes": "24V 也可从 24Pin 扩展口 #2 VCC_IN 并联输入，但推荐走 XT30 主输入，扩展口只作备份。"
+  },
+  "x42_axes": {
+    "base": {
+      "name": "M1 底座旋转（base）",
+      "role": "底座回转轴",
+      "microstep": 16,
+      "pulse_per_rev": 3200,
+      "rated_rpm": 30,
+      "id": 1,
+      "signals": [
+        { "signal": "V+", "mc02_pin": null, "route": "分电板 OUT2 → X42 V+", "wire": "20AWG 红", "connector": "X42 专用 2P 电源端子（绿色插座/KF128-2.54）；无此端子时改 XH2.54 压接或直接焊 20AWG" },
+        { "signal": "GND", "mc02_pin": "GND", "route": "分电板 OUT2 GND → X42 Gnd → MC02 GND（共地）", "wire": "20AWG 黑" },
+        { "signal": "COM", "mc02_pin": "3V3", "route": "扩展口 #8 VCC_3V3 → 三轴 COM 并接", "wire": "24AWG 紫" },
+        { "signal": "En", "mc02_pin": "3V3", "route": "En 与 COM 同点（Hold，一直使能）", "wire": "24AWG 紫" },
+        { "signal": "Stp", "mc02_pin": "PE13", "route": "MC02 PWM4 排口（TIM1_CH3）→ X42 Stp", "wire": "24AWG 白" },
+        { "signal": "Dir", "mc02_pin": "PD10", "route": "MC02 LCD 口 #9 GPIO → X42 Dir", "wire": "24AWG 黄" }
+      ]
+    },
+    "joint1": {
+      "name": "M2 关节1（joint1）",
+      "role": "大臂俯仰轴",
+      "microstep": 16,
+      "pulse_per_rev": 3200,
+      "rated_rpm": 60,
+      "id": 2,
+      "signals": [
+        { "signal": "V+", "mc02_pin": null, "route": "分电板 OUT3 → X42 V+", "wire": "20AWG 红", "connector": "X42 专用 2P 电源端子（绿色插座/KF128-2.54）；无此端子时改 XH2.54 压接或直接焊 20AWG" },
+        { "signal": "GND", "mc02_pin": "GND", "route": "分电板 OUT3 GND → X42 Gnd → MC02 GND（共地）", "wire": "20AWG 黑" },
+        { "signal": "COM", "mc02_pin": "3V3", "route": "扩展口 #8 VCC_3V3 → 三轴 COM 并接", "wire": "24AWG 紫" },
+        { "signal": "En", "mc02_pin": "3V3", "route": "En 与 COM 同点（Hold，一直使能）", "wire": "24AWG 紫" },
+        { "signal": "Stp", "mc02_pin": "PE8", "route": "MC02 PWM 排口（TIM1_CH4，PWM2 或第 3 路，以丝印复核）→ X42 Stp", "wire": "24AWG 白" },
+        { "signal": "Dir", "mc02_pin": "PE14", "route": "MC02 24Pin 扩展口 #13 GPIO → X42 Dir", "wire": "24AWG 黄" }
+      ]
+    },
+    "joint2": {
+      "name": "M3 关节2（joint2）",
+      "role": "小臂俯仰轴",
+      "microstep": 16,
+      "pulse_per_rev": 3200,
+      "rated_rpm": 60,
+      "id": 3,
+      "signals": [
+        { "signal": "V+", "mc02_pin": null, "route": "分电板 OUT4 → X42 V+", "wire": "20AWG 红", "connector": "X42 专用 2P 电源端子（绿色插座/KF128-2.54）；无此端子时改 XH2.54 压接或直接焊 20AWG" },
+        { "signal": "GND", "mc02_pin": "GND", "route": "分电板 OUT4 GND → X42 Gnd → MC02 GND（共地）", "wire": "20AWG 黑" },
+        { "signal": "COM", "mc02_pin": "3V3", "route": "扩展口 #8 VCC_3V3 → 三轴 COM 并接", "wire": "24AWG 紫" },
+        { "signal": "En", "mc02_pin": "3V3", "route": "En 与 COM 同点（Hold，一直使能）", "wire": "24AWG 紫" },
+        { "signal": "Stp", "mc02_pin": "PA0", "route": "MC02 PWM1 排口（TIM2_CH1）→ X42 Stp", "wire": "24AWG 白" },
+        { "signal": "Dir", "mc02_pin": "PD14", "route": "MC02 24Pin 扩展口 #11 UART9_RX 复用为 GPIO → X42 Dir", "wire": "24AWG 黄" }
+      ]
+    }
+  },
+  "can_backup": {
+    "enabled": false,
+    "mcu_peripheral": "CAN3（PB12/PB13，收发器 5V 由可控 5V 供电）",
+    "p_serial": "CAN1_MAP",
+    "topology": "MC02 CAN3 H/L → 分电板 CAN 汇流 → 三轴 R-A-H(=CAN_H)/T-B-L(=CAN_L) 菊花链",
+    "bitrate": "1 Mbps（推荐；三节点短线）",
+    "nets": [
+      { "signal": "CAN_H", "mc02_pin": "PB12" },
+      { "signal": "CAN_L", "mc02_pin": "PB13" },
+      { "signal": "GND", "mc02_pin": "GND" },
+      { "signal": "5V_EN", "mc02_pin": "5V" }
+    ],
+    "termination": [
+      { "where": "MC02 板载 CAN3 120Ω（R2 处）", "fitted": true },
+      { "where": "分电板 CAN 汇流末端 120Ω（跳线 JP1 接通）", "fitted": true },
+      { "where": "三轴 X42 节点", "fitted": false }
+    ],
+    "notes": "CAN 备用时 P_Pul 仍需 PUL_ENA 之外的每轴 ID 1/2/3；切换 CAN 后脉冲线可保留不拆，X42 支持混合控制。"
+  },
+  "vision": {
+    "options": ["MaixCAM Pro", "K230 (CanMV)"],
+    "nets": [
+      { "signal": "5V", "mc02_pin": "5V", "route": "MC02 PWM 排口 5V 可控电源 → 视觉模块 5V", "limit": "2A" },
+      { "signal": "GND", "mc02_pin": "GND" },
+      { "signal": "UART1_TX", "mc02_pin": "PA9", "route": "MC02 USART1 #2 TX → 视觉模块 RX" },
+      { "signal": "UART1_RX", "mc02_pin": "PA10", "route": "MC02 USART1 #3 RX → 视觉模块 TX" }
+    ],
+    "alternative_uart": "UART7（PE8/PE7）可用，PE8 在 PWM 排口空着，可当第二路视觉/调试口",
+    "notes": "视觉模块若由 24V→5V 独立降压供电，改接分电板 OUT5，不要与 MC02 5V 并接。"
+  },
+  "swd": {
+    "debugger": "STLink V2 / DAPLink",
+    "nets": [
+      { "signal": "3V3", "mc02_pin": "3V3" },
+      { "signal": "GND", "mc02_pin": "GND" },
+      { "signal": "SWCLK", "mc02_pin": "PA14" },
+      { "signal": "SWDIO", "mc02_pin": "PA13" }
+    ],
+    "notes": "SWD 口同时可给 MC02 供电调试，但电机驱动必须走 24V 主电源。"
+  },
+  "self_test": {
+    "steps": [
+      { "no": 1, "action": "断电，用蜂鸣档量 24V 输入 +/− 之间", "expect": "不响；无短路" },
+      { "no": 2, "action": "上电，量分电板 TP24 对 TPGND", "expect": "24V ±5%" },
+      { "no": 3, "action": "量每路输出端子对 GND", "expect": "24V ±5%" },
+      { "no": 4, "action": "量 MC02 扩展口 3V3(#8) 对 GND", "expect": "3.3V ±3%" },
+      { "no": 5, "action": "量 MC02 PWM 排口 5V 对 GND（PC15 使能后）", "expect": "5V ±5%" },
+      { "no": 6, "action": "量 X42 COM 对 GND（三轴）", "expect": "3.3V，且绝不能是 5V/24V" },
+      { "no": 7, "action": "单轴低速试转：只接 base，Stp 发 1 kHz", "expect": "电机正转且无丢步" },
+      { "no": 8, "action": "翻转 Dir 再发 1 kHz", "expect": "反向转" },
+      { "no": 9, "action": "急停：发 X42 立即停止 / 断 24V", "expect": "1 秒内停转" },
+      { "no": 10, "action": "量 SWD：PA13/PA14 对 GND", "expect": "约 3.3V 上拉，可被 STLink 识别" },
+      { "no": 11, "action": "拔一下三个 X42 的电源连接器", "expect": "拔不动、无松动、不发热；是杜邦就换端子/焊接" },
+      { "no": 12, "action": "满速跑 1 分钟后量 X42 V+ 对 Gnd", "expect": "≥23.5V（掉压 <0.5V）" }
+    ],
+    "abort_conditions": ["COM 电压不是 3.3V", "任何一路 24V 反接", "X42 屏幕报 Not Cal / Phase Error"]
+  },
+  "power_budget": {
+    "supply_a": 10,
+    "supply_v": 24,
+    "items": [
+      { "load": "MC02", "avg_a": 0.3 },
+      { "load": "X42 base", "avg_a": 1.0 },
+      { "load": "X42 joint1", "avg_a": 1.2 },
+      { "load": "X42 joint2", "avg_a": 1.2 },
+      { "load": "视觉模块（MC02 5V@2A 供）", "avg_a": 0.0, "note": "经 5V 折算约 0.4A@24V，计入余量" },
+      { "load": "余量", "avg_a": 0.5 }
+    ],
+    "total_avg_a": 4.2,
+    "peak_a": 12,
+    "note": "平均 4.2A，峰值（三轴同时加速）按 X42 每轴 4A 估算约 12A；10A 电源靠自身恒流限流 + 主保险 10A 兜底，不建议三轴同时满载长跑。"
+  }
+}

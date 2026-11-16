@@ -1,0 +1,28 @@
+# 编译产物
+build/
+Debug/
+Release/
+.pio/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.axf
+
+# IDE / 工具链本地状态
+.vscode/
+.idea/
+*.uvguix.*
+*.uvoptx
+MDK-ARM/Objects/
+MDK-ARM/Listings/
+
+# Python
+__pycache__/
+*.pyc
+
+# 系统
+Thumbs.db
+desktop.ini
